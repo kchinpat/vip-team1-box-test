@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:widget="http://www.netvibes.com/ns/">
+<head>
+<meta name="author" content="VIP Team 1" />
+<meta name="description" content="One-button PlatformAPI test: moves a dummy box in a Creative Experience" />
+<meta name="apiVersion" content="1.3" />
+<meta name="debugMode" content="false" />
+<meta name="strictMode" content="false" />
+<meta name="autoRefresh" content="0" />
+<title>Box Move Test</title>
+<style type="text/css">
+/*<![CDATA[*/
+html, body { margin: 0; height: 100%; font: 14px Arial, Helvetica, sans-serif; background: #f4f6f8; color: #1d2733; }
+#bt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; height: 100vh; }
+#bt-move { font-size: 22px; padding: 16px 40px; border: 1px solid #0b5ea8; background: #1676c7; color: #fff; cursor: pointer; border-radius: 4px; }
+#bt-move:active { background: #0b5ea8; }
+#bt-status { color: #4b5866; text-align: center; max-width: 90%; }
+/*]]>*/
+</style>
+<script type="text/javascript">
+//<![CDATA[
+/*
+ * Run Your App widget. Pressing the button publishes { action: 'MOVE_BOX' } on the PlatformAPI
+ * topic 'vip.boxtest'. The Creative Experience script (cx-box-script.js) subscribes to the same topic.
+ */
+(function () {
+  'use strict';
+  var TOPIC = 'vip.boxtest';
+  var host = typeof widget === 'undefined' ? {
+    body: null,
+    addEvent: function (name, fn) { if (name === 'onLoad') window.addEventListener('load', fn); }
+  } : widget;
+  var api = null, sent = 0, status = null;
+
+  function say(text) { status.textContent = text; }
+
+  function press() {
+    var msg = { source: 'vip-boxtest', action: 'MOVE_BOX', count: ++sent, time: new Date().toISOString() };
+    if (api) api.publish(TOPIC, msg);
+    if (window.parent !== window) window.parent.postMessage(msg, '*');
+    say((api ? 'Published' : 'PlatformAPI unavailable, only posted to parent window:') +
+      ' MOVE_BOX #' + sent + ' on "' + TOPIC + '"');
+  }
+
+  host.addEvent('onLoad', function () {
+    var body = host.body || document.body;
+    body.innerHTML = '';
+    var root = document.createElement('div');
+    root.id = 'bt';
+    var button = document.createElement('button');
+    button.id = 'bt-move';
+    button.type = 'button';
+    button.textContent = 'Move box';
+    button.onclick = press;
+    status = document.createElement('div');
+    status.id = 'bt-status';
+    root.appendChild(button);
+    root.appendChild(status);
+    body.appendChild(root);
+
+    if (typeof require !== 'function') { say('PlatformAPI unavailable: not running in 3DDashboard'); return; }
+    say('Connecting to PlatformAPI…');
+    require(['DS/PlatformAPI/PlatformAPI'], function (PlatformAPI) {
+      api = PlatformAPI;
+      say('Ready: PlatformAPI connected (topic "' + TOPIC + '")');
+    }, function (err) {
+      say('PlatformAPI failed to load: ' + ((err && err.message) || 'unknown error'));
+    });
+  });
+})();
+//]]>
+</script>
+</head>
+<body>
+<p>Loading…</p>
+</body>
+</html>
